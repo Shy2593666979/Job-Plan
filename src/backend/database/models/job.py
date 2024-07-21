@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Optional, List, Union, Tuple
 from uuid import UUID, uuid4
-from sqlmodel import SQLModel, Field, select
+from sqlmodel import SQLModel, Field, select, delete
 from sqlalchemy import JSON, Column, DateTime, Text, and_, func, or_, text
 from sqlalchemy import JSON, Column, DateTime
 from backend.database.base import session_getter
@@ -42,42 +42,61 @@ class JobDao(Job):
             return data
     
     @classmethod
-    def delete_job(cls, data: Job) -> Job:
+    def delete_job_by_id(cls, id: UUID) -> Job:
         with session_getter() as session:
-            session.add(data)
+            statement = delete(Job).where(Job.id == id)
+            session.exec(statement)
             session.commit()
-            session.refresh(data)
-            return data
     
     @classmethod
-    def get_job_by_name(cls, name: str) -> Job:
+    def select_job_by_name(cls, name: str) -> Job:
         with session_getter() as session:
             statement = select(Job).where(Job.name.like(f"%{name}%"))
             return session.exec(statement).all()
     
     @classmethod
-    def get_job_by_company(cls, company: str) -> Job:
+    def select_job_by_company(cls, company: str) -> Job:
         with session_getter() as session:
             statement = select(Job).where(Job.company == company)
             return session.exec(statement).all()
     
     @classmethod
-    def get_job_by_address(cls, address: str) -> Job:
+    def select_job_by_address(cls, address: str) -> Job:
         with session_getter() as session:
             statement = select(Job).where(Job.address == address)
             return session.exec(statement).all()
     
     @classmethod
-    def get_job_by_type(cls, type: str) -> Job:
+    def select_job_by_type(cls, type: str) -> Job:
         with session_getter() as session:
             statement = select(Job).where(Job.type == type)
             return session.exec(statement).all()
     
     @classmethod
-    def get_job_by_id(cls, id: UUID) -> Job:
+    def select_job_by_id(cls, id: UUID) -> Job:
         with session_getter() as session:
             statement = select(Job).where(Job.id == id)
+            return session.exec(statement).first()
+    
+    @classmethod
+    def select_job_by_fields(cls, name: str = None, company: str = None,
+                            address: str = None, type: str = None,
+                            id: str = None) -> Job:
+        with session_getter() as session:
+            conditions = []
+            if name is not None:
+                conditions.append(Job.name == name)
+            if company is not None:
+                conditions.append(Job.company == company)
+            if address is not None:
+                conditions.append(Job.address == address)
+            if type is not None:
+                conditions.append(Job.type == type)
+            if id is not None:
+                conditions.append(Job.id == id)
+            statement = select(Job).where(and_(*conditions))
             return session.exec(statement).all()
+        
     @classmethod
     def get_order_job_by_deadline(cls) -> Job:
         with session_getter() as session:
